@@ -1,0 +1,876 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{listings}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{array}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  showstringspaces=false,
+  columns=fullflexible,
+  tabsize=2,
+  xleftmargin=0pt,
+  xrightmargin=0pt
+}
+
+\setlist[itemize]{leftmargin=1.2em}
+\setlist[enumerate]{leftmargin=1.4em}
+
+\newcommand{\statut}[1]{\textbf{Statut : #1}}
+
+\title{Tailor Platform Web \\ Base de reference PHP, HTML, CSS et Bootstrap}
+\author{Notes personnelles}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+Ce document est le pendant web de ma base de reference Dart/Flutter. Il suit
+la meme logique : il grandit avec le projet, il distingue ce qui est
+"deja appris", "a consolider", "nouveau" ou "avance", et il ne repart jamais
+de zero lors d'une mise a jour.
+
+Le support principal utilise pour la partie orientee objet de PHP est le
+tutoriel \textit{Programmez en oriente objet en PHP} (Victor Thuillier,
+OpenClassrooms). La syntaxe presentee ici est cependant celle de PHP moderne
+(8.x), avec les types stricts, ce qui differe legerement du tutoriel original
+plus ancien mais respecte les memes principes de base.
+
+Beaucoup de notions de programmation ont deja ete vues cote Dart. Quand
+c'est le cas, ce document fait le lien plutot que de tout ré-expliquer
+depuis zero.
+
+% ============================================================
+\section{Etat du projet : Tailor Platform Web}
+% ============================================================
+
+\subsection{Objectif}
+
+La version web reproduit exactement le meme perimetre que la V1 mobile
+Flutter :
+
+\begin{center}
+\textit{Le tailleur vend des modeles et le client en achete.}
+\end{center}
+
+Meme choix qu'en mobile pour cette V1 :
+
+\begin{itemize}
+  \item pas de base de donnees ;
+  \item pas de backend externe (PHP est lui-meme le backend, mais sans SGBD) ;
+  \item pas d'authentification reelle ;
+  \item pas de paiement reel ;
+  \item pas de livraison reelle.
+\end{itemize}
+
+A la place d'une base de donnees, les donnees vivent dans la session PHP
+(\verb|$_SESSION|). C'est l'equivalent web des \verb|List| en memoire cote
+Flutter : les donnees disparaissent si on ferme completement le navigateur
+(la session expire).
+
+\subsection{Design suivi}
+
+Le site reprend la palette et l'esprit visuel d'une maquette fournie
+(couleurs terracotta, foret, sable, creme, typographie serif pour les
+titres). L'implementation reste volontairement simple : HTML, CSS et
+Bootstrap, sans framework JavaScript.
+
+\subsection{Structure du projet}
+
+\begin{lstlisting}
+tailor_platform_web/
+  src/
+    Model/
+      Tailor.php
+      Realisation.php
+    Support/
+      Panier.php
+      CartService.php
+    Data/
+      CatalogueRepository.php
+      TailorRepository.php
+  includes/
+    bootstrap.php
+    header.php
+    footer.php
+  public/
+    index.php
+    tailor_profile.php
+    add_article.php
+    catalogue.php
+    article_detail.php
+    cart.php
+    order_confirmation.php
+    assets/
+      css/style.css
+      vendor/bootstrap/css/bootstrap.min.css
+      vendor/bootstrap/js/bootstrap.bundle.min.js
+\end{lstlisting}
+
+\verb|public/| est la racine web (document root). \verb|src/| et
+\verb|includes/| contiennent du code PHP qui n'est jamais accede
+directement par le navigateur : il est charge par les pages de
+\verb|public/|.
+
+\subsection{Parcours V1 (identique au mobile)}
+
+\begin{lstlisting}
+TAILLEUR
+profil/catalogue
+  |
+ajouter un modele
+  |
+modele disponible dans le catalogue
+  |
+CLIENT
+catalogue
+  |
+detail du modele
+  |
+ajouter au panier
+  |
+panier
+  |
+calcul du total
+  |
+commander
+  |
+confirmation de commande
+  |
+retour au catalogue
+\end{lstlisting}
+
+\subsection{Etat d'avancement}
+
+L'ensemble du parcours ci-dessus est fonctionnel des la premiere version du
+site web. Contrairement a la version Flutter (developpee etape par etape),
+la version web a ete construite d'un bloc en reprenant les regles deja
+etablies cote mobile.
+
+% ============================================================
+\section{PHP : vue d'ensemble des notions}
+% ============================================================
+
+\begin{longtable}{|p{5cm}|p{4cm}|p{5cm}|}
+\hline
+\textbf{Notion} & \textbf{Statut} & \textbf{Remarque} \\
+\hline
+Variables (\$), types & Nouveau & Similaire a Dart, mais prefixe \$ et typage plus souple \\
+\hline
+echo, affichage & Nouveau & \\
+\hline
+Tableaux indexes et associatifs & Nouveau & Jouent le role des List et Map de Dart \\
+\hline
+foreach & Nouveau & Equivalent du for-in de Dart \\
+\hline
+Conditions, operateurs & Deja appris & Meme logique qu'en Dart \\
+\hline
+Fonctions & Deja appris & Meme logique qu'en Dart, syntaxe differente \\
+\hline
+Classes, objets, \$this & Nouveau & Bases deja connues via Dart, syntaxe PHP a apprendre \\
+\hline
+Visibilite (private, public, protected) & Nouveau & Rapproche du principe d'encapsulation \\
+\hline
+Constructeur \_\_construct & Nouveau & Equivalent du constructeur Dart \\
+\hline
+Namespaces & Nouveau & Organise les classes, evite les conflits de noms \\
+\hline
+Autoload (spl\_autoload\_register) & Nouveau & Charge les classes automatiquement \\
+\hline
+Superglobales (\$\_GET, \$\_POST, \$\_SESSION, \$\_SERVER) & Nouveau & Coeur de la communication entre pages en PHP \\
+\hline
+Sessions PHP & Nouveau & Remplace la base de donnees pour cette V1 \\
+\hline
+include / require & Nouveau & Assemble les pages a partir de morceaux communs (header, footer) \\
+\hline
+header() et redirection & Nouveau & Equivalent web de Navigator.push/pop \\
+\hline
+Traitement de formulaire (POST) & Nouveau & \\
+\hline
+Validation de donnees utilisateur & Nouveau & \\
+\hline
+Exceptions (try/catch) & Avance & Pas encore utilise dans le projet \\
+\hline
+Interfaces, heritage, abstract & Avance & Vus dans le tutoriel PHP, pas encore utilises dans le projet \\
+\hline
+\end{longtable}
+
+\subsection{Classes en PHP : Realisation et Tailor}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Comme en Dart, une classe decrit un modele de donnee et un objet en est une
+instance. La grande difference de syntaxe : les attributs sont precedes de
+\verb|$| et on accede a un attribut ou une methode avec \verb|->| au lieu de
+\verb|.|.
+
+\paragraph{Comparaison rapide avec Dart.}
+
+\begin{longtable}{|p{4cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Concept} & \textbf{Dart} & \textbf{PHP} \\
+\hline
+Definir une classe & \verb|class Realisation { }| & \verb|class Realisation { }| \\
+\hline
+Attribut & \verb|String title;| & \verb|private string $title;| \\
+\hline
+Constructeur & \verb|Realisation({required this.title})| & \verb|public function __construct(string $title)| \\
+\hline
+Acceder a un attribut/methode & \verb|objet.title| & \verb|$objet->getTitle()| \\
+\hline
+Soi-meme & \verb|this| & \verb|$this| \\
+\hline
+\end{longtable}
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+<?php
+
+declare(strict_types=1);
+
+namespace App\Model;
+
+class Realisation
+{
+    private int $id;
+    private string $title;
+    private string $description;
+    private float $price;
+
+    public function __construct(int $id, string $title, string $description, float $price)
+    {
+        $this->id = $id;
+        $this->title = $title;
+        $this->description = $description;
+        $this->price = $price;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    public function getPrice(): float
+    {
+        return $this->price;
+    }
+}
+\end{lstlisting}
+
+\paragraph{Pourquoi des attributs private avec des getters.}
+C'est le principe d'encapsulation expliquer dans le tutoriel PHP OOP :
+personne en dehors de la classe ne doit pouvoir modifier directement
+\verb|$title| ou \verb|$price|. On passe obligatoirement par une methode
+publique (ici un getter) pour lire la valeur. Cela protege l'objet contre
+des modifications incoherentes.
+
+\paragraph{Creer un objet.}
+
+\begin{lstlisting}
+$realisation = new Realisation(0, 'Costume traditionnel', 'Costume deux pieces sur mesure', 45000.0);
+
+echo $realisation->getTitle();
+\end{lstlisting}
+
+\paragraph{Erreurs frequentes.}
+\begin{itemize}
+  \item Oublier \verb|$this->| dans le constructeur : sans lui, la variable
+  reste locale a la methode et l'attribut de l'objet n'est jamais rempli.
+  \item Declarer un attribut \verb|public| par facilite, ce qui casse
+  l'encapsulation.
+  \item Oublier le point-virgule a la fin d'une instruction (erreur
+  frequente venant de Dart ou l'oubli est parfois moins visible).
+\end{itemize}
+
+\paragraph{Dans Tailor Platform.}
+\verb|App\Model\Realisation| et \verb|App\Model\Tailor| sont la copie
+conforme, en PHP, des classes Dart du meme nom. Elles n'ont aucune logique
+de session ou d'affichage : elles ne font que representer une donnee.
+
+\subsection{Namespace et autoload}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Un \verb|namespace| est un peu comme un dossier logique pour les classes.
+Il evite qu'une classe \verb|Realisation| du projet entre en conflit avec
+une classe \verb|Realisation| d'une bibliotheque externe.
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+namespace App\Model;
+
+class Realisation
+{
+    // ...
+}
+\end{lstlisting}
+
+Pour utiliser la classe ailleurs :
+
+\begin{lstlisting}
+use App\Model\Realisation;
+
+$realisation = new Realisation(0, 'Titre', 'Description', 1000.0);
+\end{lstlisting}
+
+\paragraph{L'autoload.}
+Sans autoload, il faudrait ecrire un \verb|require| pour chaque fichier de
+classe avant de l'utiliser. L'autoload automatise ce chargement : des qu'une
+classe inconnue est utilisee, PHP appelle une fonction qui va chercher le
+bon fichier.
+
+\begin{lstlisting}
+spl_autoload_register(static function (string $class): void {
+    $prefix = 'App\\';
+
+    if (!str_starts_with($class, $prefix)) {
+        return;
+    }
+
+    $relativeClass = substr($class, strlen($prefix));
+    $file = __DIR__ . '/../src/' . str_replace('\\', '/', $relativeClass) . '.php';
+
+    if (is_file($file)) {
+        require_once $file;
+    }
+});
+\end{lstlisting}
+
+\paragraph{Point important rencontre dans le projet.}
+L'autoload doit etre enregistre \textbf{avant} \verb|session_start()|. En
+effet, PHP recharge automatiquement les objets stockes en session des le
+demarrage de la session. Si la classe correspondante n'est pas encore
+connue a ce moment (autoload pas encore enregistre), l'objet recupere est
+incomplet et inutilisable. C'est une erreur reelle que nous avons rencontree
+et corrigee dans \verb|includes/bootstrap.php|.
+
+\paragraph{Dans Tailor Platform.}
+Toutes les classes du projet vivent sous le namespace \verb|App\| (par
+exemple \verb|App\Model\Realisation|, \verb|App\Data\CatalogueRepository|).
+L'autoload est configure une seule fois, dans \verb|includes/bootstrap.php|,
+et ce fichier est inclus en tout premier dans chaque page.
+
+\subsection{Superglobales : \$\_GET, \$\_POST, \$\_SESSION, \$\_SERVER}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Les superglobales sont des tableaux automatiquement remplis par PHP, et
+accessibles depuis n'importe quel fichier sans rien importer.
+
+\begin{longtable}{|p{2.5cm}|p{9.5cm}|}
+\hline
+\textbf{Superglobale} & \textbf{Role} \\
+\hline
+\verb|$_GET| & Donnees envoyees dans l'URL (\verb|?id=3|) \\
+\hline
+\verb|$_POST| & Donnees envoyees par un formulaire en methode POST \\
+\hline
+\verb|$_SESSION| & Donnees qui persistent d'une page a l'autre pour un meme visiteur \\
+\hline
+\verb|$_SERVER| & Informations sur la requete en cours (methode HTTP, etc.) \\
+\hline
+\end{longtable}
+
+\paragraph{Exemple : lire un identifiant dans l'URL.}
+
+\begin{lstlisting}
+$id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int) $_GET['id'] : null;
+\end{lstlisting}
+
+\paragraph{Exemple : lire un champ de formulaire.}
+
+\begin{lstlisting}
+$title = trim((string) ($_POST['title'] ?? ''));
+\end{lstlisting}
+
+\paragraph{Exemple : connaitre la methode HTTP de la requete.}
+
+\begin{lstlisting}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // le formulaire a ete soumis
+}
+\end{lstlisting}
+
+\paragraph{Erreurs frequentes.}
+\begin{itemize}
+  \item Lire \verb|$_POST['title']| sans verifier qu'il existe : erreur si
+  le champ n'a pas ete envoye. On utilise \verb|??| pour donner une valeur
+  par defaut.
+  \item Faire confiance aveuglement a une donnee venant de \verb|$_GET| ou
+  \verb|$_POST| : il faut toujours la valider avant de l'utiliser.
+  \item Oublier \verb|(int)| ou \verb|(float)| : ces donnees arrivent
+  toujours sous forme de texte (\verb|string|), meme si elles ressemblent a
+  des nombres.
+\end{itemize}
+
+\paragraph{Dans Tailor Platform.}
+\verb|article_detail.php| lit l'identifiant du modele via \verb|$_GET['id']|.
+\verb|add_article.php| lit le titre, la description et le prix via
+\verb|$_POST|. \verb|cart.php| declenche la commande en verifiant
+\verb|$_SERVER['REQUEST_METHOD']|.
+
+\subsection{Sessions PHP}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Une session permet de conserver des donnees d'une page a l'autre pour un
+meme visiteur, alors que chaque requete HTTP est normalement independante
+des autres.
+
+\paragraph{Comment la visualiser.}
+
+\begin{lstlisting}
+Visiteur A                      Visiteur B
+$_SESSION (A)                   $_SESSION (B)
+  cart: [Costume]                 cart: []
+  realisations: [...]             realisations: [...]
+\end{lstlisting}
+
+Chaque visiteur a sa propre session, identifiee par un cookie invisible
+envoye automatiquement par le navigateur.
+
+\paragraph{Demarrer une session.}
+
+\begin{lstlisting}
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+\end{lstlisting}
+
+\paragraph{Lire et ecrire dans la session.}
+
+\begin{lstlisting}
+$_SESSION['cart'][] = $realisation;   // ajouter
+$items = $_SESSION['cart'];           // lire
+$_SESSION['cart'] = [];               // vider
+\end{lstlisting}
+
+\paragraph{Ce que je dois retenir.}
+\verb|$_SESSION| se comporte comme un tableau normal, mais son contenu
+survit d'une page a l'autre. C'est ce qui remplace la base de donnees dans
+cette V1 : le "catalogue" et le "panier" sont juste des tableaux stockes en
+session.
+
+\paragraph{Dans Tailor Platform.}
+\verb|CatalogueRepository| stocke la liste des \verb|Realisation| dans
+\verb|$_SESSION['realisations']|. \verb|CartService| stocke le panier dans
+\verb|$_SESSION['cart']|. Si le tailleur ajoute un modele, il est visible
+tant que la session dure, exactement comme le \verb|cart.add()| en memoire
+cote Flutter.
+
+\subsection{header() et redirection}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+\verb|header('Location: ...')| dit au navigateur : va sur cette autre page.
+C'est l'equivalent web de \verb|Navigator.push| ou \verb|Navigator.pop| en
+Flutter, mais cote serveur.
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+header('Location: tailor_profile.php');
+exit;
+\end{lstlisting}
+
+\verb|exit| est indispensable juste apres : sans lui, le reste du script
+continue de s'executer meme si le navigateur va deja changer de page.
+
+\paragraph{Passer une donnee a la page suivante.}
+Cote Flutter, on passe une donnee via le constructeur de la page. Cote web,
+l'equivalent le plus simple est de l'ajouter dans l'URL :
+
+\begin{lstlisting}
+header('Location: order_confirmation.php?total=' . rawurlencode((string) $total));
+exit;
+\end{lstlisting}
+
+Et on la relit sur la page d'arrivee avec \verb|$_GET| :
+
+\begin{lstlisting}
+$total = isset($_GET['total']) ? (float) $_GET['total'] : 0.0;
+\end{lstlisting}
+
+\paragraph{Erreurs frequentes.}
+\begin{itemize}
+  \item Oublier \verb|exit| apres \verb|header('Location: ...')|.
+  \item Appeler \verb|header()| apres avoir deja affiche du HTML : PHP
+  refuse alors d'envoyer l'en-tete (erreur "headers already sent").
+  \item Oublier \verb|rawurlencode| sur une valeur qui pourrait contenir des
+  caracteres speciaux dans l'URL.
+\end{itemize}
+
+\paragraph{Dans Tailor Platform.}
+\verb|add_article.php| redirige vers \verb|tailor_profile.php| apres un
+ajout reussi. \verb|article_detail.php| redirige vers \verb|catalogue.php|
+apres l'ajout au panier. \verb|cart.php| redirige vers
+\verb|order_confirmation.php| en transmettant le total et le nombre
+d'articles dans l'URL.
+
+\subsection{Traitement d'un formulaire}
+
+\statut{Nouveau}
+
+\paragraph{Principe general.}
+Une page qui contient un formulaire fait souvent deux choses a la fois :
+elle affiche le formulaire (methode GET) et elle traite son envoi (methode
+POST), dans le meme fichier PHP.
+
+\paragraph{Structure type utilisee dans le projet.}
+
+\begin{lstlisting}
+<?php
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. recuperer les valeurs envoyees
+    // 2. les valider
+    // 3. si tout est correct, enregistrer puis rediriger
+}
+
+// 4. si on arrive ici, afficher le formulaire (premiere visite ou erreur)
+?>
+
+<form method="post">
+  <input type="text" name="title">
+  <button type="submit">Enregistrer</button>
+</form>
+\end{lstlisting}
+
+\paragraph{Ce que je dois retenir.}
+Le fait de re-afficher le formulaire (au lieu de rediriger) quand il y a une
+erreur permet de montrer les messages d'erreur au visiteur, avec ce qu'il
+avait deja tape.
+
+\paragraph{Dans Tailor Platform.}
+\verb|add_article.php| suit exactement cette structure : verification du
+titre, de la description et du prix, affichage des erreurs si besoin, sinon
+enregistrement via \verb|CatalogueRepository::add()| puis redirection.
+
+% ============================================================
+\section{HTML, CSS et Bootstrap : vue d'ensemble}
+% ============================================================
+
+\begin{longtable}{|p{5cm}|p{4cm}|p{5cm}|}
+\hline
+\textbf{Notion} & \textbf{Statut} & \textbf{Remarque} \\
+\hline
+Structure HTML de base & Nouveau & doctype, html, head, body \\
+\hline
+Formulaires HTML (form, input, textarea) & Nouveau & \\
+\hline
+CSS : selecteurs, proprietes & Nouveau & \\
+\hline
+CSS : variables (--ma-couleur) & Nouveau & Utilisees pour la palette du projet \\
+\hline
+Bootstrap : grille (container, row, col) & Nouveau & Equivalent visuel de Row/Column/Expanded en Flutter \\
+\hline
+Bootstrap : composants (card, navbar, btn, form-control) & Nouveau & \\
+\hline
+JavaScript & Avance & Pas encore utilise dans le projet (Bootstrap est inclus pour plus tard) \\
+\hline
+\end{longtable}
+
+\subsection{Grille Bootstrap : container, row, col}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+La grille Bootstrap permet d'organiser une page en lignes et colonnes, un
+peu comme \verb|Row| et \verb|Column| en Flutter, mais pensee pour
+s'adapter automatiquement a la largeur de l'ecran (responsive).
+
+\paragraph{Comment la visualiser.}
+
+\begin{lstlisting}
+container
+  row
+    col   col   col
+   [ A ] [ B ] [ C ]
+\end{lstlisting}
+
+Sur un ecran etroit (mobile), les colonnes peuvent se replacer les unes
+sous les autres automatiquement.
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+<div class="container">
+  <div class="row">
+    <div class="col">Colonne 1</div>
+    <div class="col">Colonne 2</div>
+  </div>
+</div>
+\end{lstlisting}
+
+\paragraph{Classes utiles rencontrees dans le projet.}
+
+\begin{longtable}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Classe} & \textbf{Role} \\
+\hline
+\verb|container| & Centre le contenu et lui donne une largeur maximale \\
+\hline
+\verb|row| & Cree une ligne de colonnes \\
+\hline
+\verb|col| & Une colonne de largeur egale et automatique \\
+\hline
+\verb|row-cols-1 row-cols-sm-2 row-cols-lg-3| & Nombre de colonnes different selon la taille d'ecran \\
+\hline
+\verb|g-4| & Espace (gap) entre les colonnes et les lignes \\
+\hline
+\verb|d-flex| & Active flexbox sur l'element \\
+\hline
+\verb|justify-content-between| & Espace les elements flexbox aux extremites \\
+\hline
+\verb|align-items-center| & Centre verticalement les elements flexbox \\
+\hline
+\end{longtable}
+
+\paragraph{Erreurs frequentes.}
+\begin{itemize}
+  \item Mettre une classe \verb|row| directement sur le \verb|body|, sans
+  \verb|container| autour.
+  \item Mettre du contenu directement dans \verb|row| sans passer par
+  \verb|col|.
+  \item Oublier \verb|g-4| (ou une classe de gap) et se retrouver avec des
+  cartes collees les unes aux autres.
+\end{itemize}
+
+\paragraph{Dans Tailor Platform.}
+Le catalogue client et le catalogue du tailleur utilisent
+\verb|row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4| pour afficher les
+modeles en grille responsive, ce qui est l'equivalent visuel du
+\verb|GridView.builder| cote Flutter.
+
+\subsection{Composant Card}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Une \verb|card| Bootstrap est un bloc visuel avec un fond, une bordure et un
+espacement interieur, utilise pour presenter une information de maniere
+groupee (un modele, un produit, etc.).
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-title">Titre</h3>
+    <p class="card-text">Description</p>
+  </div>
+</div>
+\end{lstlisting}
+
+\paragraph{Dans Tailor Platform.}
+Chaque modele du catalogue est affiche dans une \verb|card|, avec le titre,
+la description, le prix et un bouton "Voir". C'est l'equivalent visuel du
+\verb|Card| Flutter utilise dans le \verb|GridView.builder| mobile.
+
+\subsection{Formulaires Bootstrap}
+
+\statut{Nouveau}
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+<div class="mb-3">
+  <label for="title" class="form-label">Titre</label>
+  <input type="text" class="form-control" id="title" name="title">
+</div>
+\end{lstlisting}
+
+\paragraph{Classes utiles.}
+
+\begin{longtable}{|p{3.5cm}|p{8.5cm}|}
+\hline
+\textbf{Classe} & \textbf{Role} \\
+\hline
+\verb|form-label| & Style du texte au-dessus du champ \\
+\hline
+\verb|form-control| & Style standard d'un champ de saisie \\
+\hline
+\verb|mb-3| & Marge en dessous, pour espacer les champs entre eux \\
+\hline
+\verb|btn btn-primary| & Bouton principal (couleur d'accent du site) \\
+\hline
+\verb|btn btn-outline-secondary| & Bouton secondaire, moins visible \\
+\hline
+\verb|alert alert-danger| & Bloc de message d'erreur \\
+\hline
+\end{longtable}
+
+\paragraph{Dans Tailor Platform.}
+Le formulaire \verb|add_article.php| utilise ces classes pour le titre, la
+description et le prix, avec un bloc \verb|alert alert-danger| affiche en
+cas d'erreur de validation.
+
+% ============================================================
+\section{Dictionnaire des fiches PHP}
+% ============================================================
+
+\subsection{Panier (classe)}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Une classe qui encapsule la logique du panier : ajouter un article,
+compter les articles, calculer le total, vider le panier.
+
+\paragraph{Pourquoi une classe plutot qu'un simple tableau.}
+On pourrait se contenter d'un tableau de \verb|Realisation| en session,
+comme cote Flutter (\verb|List<Realisation> cart = []|). Mais en
+orientant objet, on regroupe les donnees (les articles) et les actions
+possibles sur ces donnees (add, getTotal, clear) dans une seule classe. Cela
+evite de recalculer le total a plusieurs endroits differents du code avec
+des risques d'erreur.
+
+\paragraph{Syntaxe minimale.}
+
+\begin{lstlisting}
+class Panier
+{
+    private array $items;
+
+    public function __construct(array $items = [])
+    {
+        $this->items = $items;
+    }
+
+    public function add(Realisation $realisation): void
+    {
+        $this->items[] = $realisation;
+    }
+
+    public function getTotal(): float
+    {
+        $total = 0.0;
+
+        foreach ($this->items as $realisation) {
+            $total += $realisation->getPrice();
+        }
+
+        return $total;
+    }
+}
+\end{lstlisting}
+
+\paragraph{Comparaison avec Dart.}
+La methode \verb|getTotal()| ressemble volontairement a la fonction
+\verb|calculerTotal()| ecrite cote Flutter : meme logique (une boucle qui
+accumule les prix), juste rangee a l'interieur d'une classe plutot que
+laissee comme fonction independante.
+
+\paragraph{Dans Tailor Platform.}
+\verb|CartService| fait le lien entre cette classe \verb|Panier| et la
+session PHP : il reconstruit un \verb|Panier| a partir de
+\verb|$_SESSION['cart']| a chaque page, pour pouvoir utiliser ses methodes.
+
+\subsection{Repository (CatalogueRepository, TailorRepository)}
+
+\statut{Nouveau}
+
+\paragraph{C'est quoi.}
+Un repository est une classe dont le role est uniquement de fournir des
+donnees (les recuperer, les ajouter), sans se soucier de l'affichage. C'est
+une facon d'organiser le code pour que chaque classe ait une seule
+responsabilite claire.
+
+\paragraph{Dans Tailor Platform.}
+\verb|CatalogueRepository| initialise le catalogue fictif si la session est
+vide, retrouve un modele par son identifiant, et ajoute un nouveau modele.
+\verb|TailorRepository| fournit le tailleur unique de cette V1. Ces deux
+classes seront les premieres a changer le jour ou une vraie base de donnees
+sera ajoutee au projet : le reste du code (les pages) n'aura pas besoin de
+changer, puisqu'il ne fait qu'appeler leurs methodes.
+
+% ============================================================
+\section{Cheat sheet rapide}
+% ============================================================
+
+\subsection{Reference ultra rapide}
+
+\begin{longtable}{|l|l|}
+\hline
+\textbf{Element} & \textbf{Role en un mot} \\
+\hline
+\$\_GET & lire l'URL \\
+\hline
+\$\_POST & lire un formulaire \\
+\hline
+\$\_SESSION & memoriser entre les pages \\
+\hline
+header('Location: ...') & rediriger \\
+\hline
+class & definir un modele de donnee \\
+\hline
+\$this & soi-meme, dans une classe \\
+\hline
+namespace & organiser les classes \\
+\hline
+container / row / col & grille Bootstrap \\
+\hline
+card & bloc visuel Bootstrap \\
+\hline
+form-control & champ de saisie stylise \\
+\hline
+\end{longtable}
+
+\subsection{Quel outil utiliser}
+
+\begin{itemize}
+  \item Je veux recuperer un identifiant dans l'URL -> \verb|$_GET|
+  \item Je veux recuperer une valeur d'un formulaire -> \verb|$_POST|
+  \item Je veux garder une donnee d'une page a l'autre -> \verb|$_SESSION|
+  \item Je veux envoyer l'utilisateur vers une autre page -> \verb|header('Location: ...')| suivi de \verb|exit|
+  \item Je veux afficher plusieurs cartes en grille -> \verb|row row-cols-... g-4| avec des \verb|col|
+  \item Je veux un champ de formulaire bien stylise -> \verb|form-control|
+  \item Je veux regrouper donnees et actions -> une classe (\verb|class|)
+\end{itemize}
+
+% ============================================================
+\section{Regles d'evolution de ce document}
+% ============================================================
+
+\begin{itemize}
+  \item Ce document suit les memes regles que la base de reference
+  Dart/Flutter : pas de retour a zero, mise a jour progressive, statut
+  honnete de chaque notion.
+  \item Quand une nouvelle page ou une nouvelle classe est ajoutee au projet
+  web, les notions correspondantes sont ajoutees ici.
+  \item Quand le projet passera a une vraie base de donnees, une nouvelle
+  section sera ajoutee pour PDO ou l'outil choisi, sans supprimer ce qui est
+  deja documente sur les sessions.
+\end{itemize}
+
+\end{document}
